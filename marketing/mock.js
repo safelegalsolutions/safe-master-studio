@@ -111,6 +111,20 @@
     setStage: function (r) { return A.saveContact({ contact: { id: r.id, stage: r.stage } }); },
     listCampaigns: function () { return db.campaigns.map(function (c) { var e = db.enrollments.filter(function (x) { return x.campaignId === c.id; }); return Object.assign({}, c, { stats: { enrolled: e.length, active: e.filter(function (x) { return x.status === 'active'; }).length, replied: e.filter(function (x) { return x.status === 'replied'; }).length, sent: db.queue.filter(function (q) { return q.campaignId === c.id && q.status === 'sent'; }).length, pending: db.queue.filter(function (q) { return q.campaignId === c.id && q.status === 'pending_approval'; }).length } }); }); },
     saveCampaign: function (r) { var c = r.campaign; var rec = { name: c.name, segment: c.segment, steps: c.steps, useAI: c.useAI ? 'yes' : 'no', requireApproval: c.requireApproval === false ? 'no' : 'yes' }; if (c.id) return Object.assign(byId(db.campaigns, c.id), rec); rec.id = id('K'); rec.status = 'draft'; rec.createdBy = user.name; rec.createdAt = new Date().toISOString(); db.campaigns.push(rec); return rec; },
+    importCampaign: function (r) {
+      var c = r.campaign, t = new Date().toISOString();
+      var camp = { id: id('K'), name: c.name, segment: c.segment, steps: c.steps, useAI: c.useAI ? 'yes' : 'no', requireApproval: c.requireApproval === false ? 'no' : 'yes', status: r.activate ? 'active' : 'draft', createdBy: user.name, createdAt: t };
+      db.campaigns.push(camp);
+      var added = 0, matched = 0, enrolled = 0, personal = 0;
+      (r.rows || []).forEach(function (x) {
+        var ct = db.contacts.filter(function (k) { return (k.email || '').toLowerCase() === x.email; })[0];
+        if (ct) matched++; else { ct = { id: id('C'), company: x.company, name: x.name, title: x.title, email: x.email, segment: x.segment || c.segment, tags: x.tags, stage: 'New', status: 'active', owner: 'Sandeep', source: 'Excel: ' + c.name, createdAt: t }; db.contacts.push(ct); added++; }
+        var e = { id: id('E'), campaignId: camp.id, contactId: ct.id, step: 0, status: 'active', nextSendAt: t, enrolledAt: t }; db.enrollments.push(e); enrolled++;
+        var custom = x.customSubject && x.customBody; if (custom) personal++;
+        db.queue.push({ id: id('Q'), enrollmentId: e.id, campaignId: camp.id, contactId: ct.id, step: 0, to: x.email, subject: (custom ? x.customSubject : c.steps[0].subject).replace(/{{company}}/g, ct.company || ''), body: (custom ? x.customBody : c.steps[0].body).replace(/{{first_name}}/g, (ct.name || '').split(' ')[0]).replace(/{{company}}/g, ct.company || ''), status: 'pending_approval', createdAt: t });
+      });
+      return { campaignId: camp.id, added: added, matched: matched, skipped: 0, enrolled: enrolled, personal: personal, notEmailable: 0, activated: !!r.activate };
+    },
     setCampaignStatus: function (r) { var c = byId(db.campaigns, r.id); c.status = r.status; return c; },
     enroll: function (r) { var added = 0, skipped = 0; (r.contactIds || []).forEach(function (cid) { if (db.enrollments.some(function (e) { return e.campaignId === r.campaignId && e.contactId === cid; })) { skipped++; return; } db.enrollments.push({ id: id('E'), campaignId: r.campaignId, contactId: cid, step: 0, status: 'active', nextSendAt: new Date().toISOString(), enrolledAt: new Date().toISOString() }); log(cid, 'enrolled', 'Added to campaign: ' + byId(db.campaigns, r.campaignId).name, '', user.name); added++; }); return { added: added, skipped: skipped }; },
     stopEnrollment: function (r) { var e = byId(db.enrollments, r.id); e.status = 'stopped'; return e; },

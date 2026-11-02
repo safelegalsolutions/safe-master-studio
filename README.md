@@ -87,6 +87,21 @@ Edit `assets/config.js`:
 
 Use **Run sending & reply check now** on the dashboard to trigger the timers immediately.
 
+
+## Campaign from Excel (fastest way)
+1. **Campaigns → Download Excel template** (`marketing/SAFE-Campaign-Template.xlsx`).
+2. Fill the three sheets:
+   - **Campaign:** name, target segment, require approval (Yes/No), personalise with AI (Yes/No).
+   - **Emails:** Email 1 plus follow-ups, each with "send after (days)", subject and text. Merge fields work; Alt+Enter for new lines; no signature needed.
+   - **Contacts:** company and email required; optional personal subject and personal email to replace Email 1 for that person.
+3. **Campaigns → Upload campaign from Excel**, check the preview, then **Create and push campaign** (or **Create as draft**).
+4. New contacts are added, existing ones (same email) reused, unsubscribed/bounced skipped, everyone enrolled. With approval on, emails appear in **Approvals**.
+
+Emails of draft or paused campaigns never send, even if approved.
+
+## Updating the backend after a code change
+Paste the new `apps-script/Code.gs` into the Apps Script editor, save, then **Deploy → Manage deployments → ✏ Edit → Version: New version → Deploy**. The web app URL stays the same.
+
 ## Limits and good practice
 - **Gmail sending limits:** a free Gmail account can send to roughly 100 recipients a day from scripts; Google Workspace allows far more. The default daily limit is 80.
 - Open tracking (pixels) is not used — it is unreliable and intrusive. The studio tracks replies, bounces and unsubscribes.

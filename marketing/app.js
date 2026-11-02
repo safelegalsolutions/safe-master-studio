@@ -277,7 +277,7 @@
   // ------------------------------------------------------------ campaigns
   VIEWS.campaigns = function () {
     return api('listCampaigns').then(function (list) {
-      $('#view').innerHTML = head('Campaigns', '<button class="primary" id="new">New campaign</button>') +
+      $('#view').innerHTML = head('Campaigns', '<a class="btn" href="SAFE-Campaign-Template.xlsx" download>Download Excel template</a><button id="xl">Upload campaign from Excel</button><button class="primary" id="new">New campaign</button>') +
         (list.length ? '<div class="table-wrap"><table><tr><th>Campaign</th><th>Status</th><th>Steps</th><th>Enrolled</th><th>Active</th><th>Sent</th><th>Replied</th><th>Awaiting approval</th><th></th></tr>' + list.map(function (c) {
           return '<tr><td><b>' + esc(c.name) + '</b><div class="small muted">' + esc(c.segment || 'All segments') + ' · ' + (c.requireApproval === 'no' ? 'auto-send' : 'approval required') + (c.useAI === 'yes' ? ' · AI-personalised' : '') + '</div></td><td>' + statusPill(c.status) + '</td><td>' + c.steps.length + '</td><td>' + c.stats.enrolled + '</td><td>' + c.stats.active + '</td><td>' + c.stats.sent + '</td><td>' + c.stats.replied + '</td><td>' + c.stats.pending + '</td>' +
             '<td class="row" style="flex-wrap:nowrap"><button data-edit="' + c.id + '">Edit</button><button data-enroll="' + c.id + '">Add contacts</button>' +
@@ -285,11 +285,96 @@
         }).join('') + '</table></div>' : '<div class="card empty">No campaigns yet. Create one to start a sequence of emails and follow-ups.</div>') +
         '<p class="small muted" style="margin-top:12px">How it works: an active campaign queues each enrolled contact\'s next email when it falls due. Emails wait in <a href="#approvals">Approvals</a> (unless auto-send is on), go out within the sending window and daily limit, and follow-ups stop automatically when the contact replies, bounces or unsubscribes.</p>';
       $('#new').onclick = function () { campaignEditor({ steps: [{ dayOffset: 0, subject: '', body: '' }], requireApproval: 'yes' }); };
+      $('#xl').onclick = excelCampaignModal;
       $$('[data-edit]').forEach(function (b) { b.onclick = function () { campaignEditor(list.filter(function (c) { return c.id === b.getAttribute('data-edit'); })[0]); }; });
       $$('[data-enroll]').forEach(function (b) { b.onclick = function () { enrollModal(list.filter(function (c) { return c.id === b.getAttribute('data-enroll'); })[0]); }; });
       $$('[data-st]').forEach(function (b) { b.onclick = function () { api('setCampaignStatus', { id: b.getAttribute('data-id'), status: b.getAttribute('data-st') }).then(function () { toast('Campaign ' + b.getAttribute('data-st')); route(); }).catch(fail); }; });
     });
   };
+
+  // ------------------------------------------------------------ campaign from Excel
+  function excelCampaignModal() {
+    var m = modal('Upload campaign from Excel',
+      '<p class="small muted">Use the <a href="SAFE-Campaign-Template.xlsx" download>Excel template</a>: a <b>Campaign</b> sheet (name and settings), an <b>Emails</b> sheet (Email 1 and follow-ups) and a <b>Contacts</b> sheet. New contacts are added, existing ones (same email) are reused, and everyone is enrolled in the campaign.</p>' +
+      '<label>Choose the Excel file (.xlsx)</label><input type="file" id="xf" accept=".xlsx,.xls">' +
+      '<div id="xprev" style="margin-top:12px"></div>');
+    var parsed = null;
+    $('#xf', m).onchange = function () {
+      var f = this.files[0]; if (!f) return;
+      if (!window.XLSX) { $('#xprev', m).innerHTML = '<div class="banner">The Excel reader did not load. Check your internet connection and reload the page.</div>'; return; }
+      var r = new FileReader();
+      r.onload = function () {
+        try { parsed = parseCampaignWorkbook(window.XLSX.read(new Uint8Array(r.result), { type: 'array' })); showPreview(); }
+        catch (e) { parsed = null; $('#xprev', m).innerHTML = '<div class="banner">' + esc(e.message) + '</div>'; }
+      };
+      r.readAsArrayBuffer(f);
+    };
+    function showPreview() {
+      var p = parsed, valid = p.contacts.filter(function (x) { return x.ok; });
+      $('#xprev', m).innerHTML =
+        '<div class="card" style="box-shadow:none"><h3>' + esc(p.campaign.name) + '</h3>' +
+        '<div class="small muted">Segment: ' + esc(p.campaign.segment || '—') + ' · ' + (p.campaign.requireApproval ? 'approval required' : 'auto-send, no approval') + (p.campaign.useAI ? ' · AI-personalised' : '') + '</div>' +
+        '<h3 style="margin-top:12px">Emails (' + p.steps.length + ')</h3>' + p.steps.map(function (s, i) {
+          return '<div class="small"><b>' + (i === 0 ? 'Email 1' : 'Follow-up ' + i + ' · after ' + s.dayOffset + ' day(s)') + ':</b> ' + esc(s.subject) + '</div>';
+        }).join('') +
+        '<h3 style="margin-top:12px">Contacts</h3><div class="small"><b>' + valid.length + '</b> ready' +
+        (p.contacts.length - valid.length ? ' · <span style="color:var(--red)">' + (p.contacts.length - valid.length) + ' with a problem (skipped)</span>' : '') +
+        (p.examples ? ' · ' + p.examples + ' example row(s) ignored' : '') +
+        ' · ' + valid.filter(function (x) { return x.customSubject && x.customBody; }).length + ' with a personal first email</div>' +
+        '<div class="table-wrap" style="max-height:220px;margin-top:6px"><table><tr><th>Company</th><th>Contact</th><th>Email</th><th></th></tr>' +
+        p.contacts.slice(0, 200).map(function (x) { return '<tr><td>' + esc(x.company) + '</td><td>' + esc(x.name) + '</td><td>' + esc(x.email) + '</td><td>' + (x.ok ? (x.customSubject && x.customBody ? '<span class="pill blue">personal</span>' : '') : '<span class="pill red">' + esc(x.problem) + '</span>') + '</td></tr>'; }).join('') +
+        '</table></div></div>' +
+        '<p class="small muted">"Create and push" activates the campaign straight away. ' + (p.campaign.requireApproval ? 'Emails will then appear in Approvals for you to approve.' : 'Approval is OFF in this file, so emails will start sending within the sending hours.') + '</p>' +
+        '<div class="row"><button id="xdraft"' + (valid.length ? '' : ' disabled') + '>Create as draft</button><button class="primary" id="xpush"' + (valid.length ? '' : ' disabled') + '>Create and push campaign</button></div>';
+      $('#xdraft', m).onclick = function () { go(false, this); };
+      $('#xpush', m).onclick = function () { go(true, this); };
+    }
+    function go(activate, btn) {
+      var valid = parsed.contacts.filter(function (x) { return x.ok; });
+      $$('button', $('#xprev', m)).forEach(function (b) { b.disabled = true; }); btn.textContent = 'Working…';
+      api('importCampaign', { campaign: Object.assign({ steps: parsed.steps }, parsed.campaign), rows: valid, activate: activate })
+        .then(function (r) {
+          var msg = r.enrolled + ' enrolled (' + r.added + ' new contacts, ' + r.matched + ' already in the studio)' + (r.skipped ? ', ' + r.skipped + ' skipped' : '') + (r.notEmailable ? ', ' + r.notEmailable + ' unsubscribed/bounced left out' : '');
+          if (!activate) { m.remove(); toast('Draft created — ' + msg); route(); return; }
+          return api('runNow').then(function () { m.remove(); toast('Campaign pushed — ' + msg); location.hash = parsed.campaign.requireApproval ? '#approvals' : '#dashboard'; route(); refreshCounts(); });
+        }).catch(function (e) { fail(e); showPreview(); });
+    }
+  }
+
+  function parseCampaignWorkbook(wb) {
+    var find = function (re) { var n = wb.SheetNames.filter(function (s) { return re.test(s); })[0]; return n ? window.XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: '', raw: false }) : null; };
+    var cs = find(/^campaign/i), es = find(/^emails?/i), ks = find(/^contacts?/i);
+    if (!cs || !es || !ks) throw new Error('The file needs three sheets named Campaign, Emails and Contacts. Please start from the Excel template.');
+    var yes = function (v) { return /^(y|yes|true|1)$/i.test(String(v).trim()); };
+    var setting = function (re) { var r = cs.filter(function (row) { return re.test(String(row[0])); })[0]; return r ? String(r[1] || '').trim() : ''; };
+    var campaign = { name: setting(/campaign name/i), segment: setting(/segment/i), requireApproval: setting(/approval/i) === '' ? true : yes(setting(/approval/i)), useAI: yes(setting(/personali[sz]e|\bai\b/i)) };
+    if (!campaign.name) throw new Error('Fill in the campaign name on the Campaign sheet.');
+    var col = function (hdr, re) { for (var i = 0; i < hdr.length; i++) if (re.test(String(hdr[i]))) return i; return -1; };
+    var eh = es[0] || [], cDays = col(eh, /day|after/i), cSub = col(eh, /subject/i), cBody = col(eh, /text|body|email$/i);
+    if (cSub < 0 || cBody < 0) throw new Error('The Emails sheet needs "Subject" and "Email text" columns.');
+    var steps = es.slice(1).filter(function (r) { return String(r[cSub]).trim() && String(r[cBody]).trim(); }).map(function (r, i) {
+      return { dayOffset: i === 0 ? 0 : Math.max(1, parseInt(r[cDays], 10) || 3), subject: String(r[cSub]).trim(), body: String(r[cBody]).replace(/\r\n/g, '\n').trim() };
+    });
+    if (!steps.length) throw new Error('The Emails sheet has no email with both a subject and text.');
+    var kh = ks[0] || [];
+    var idx = { company: col(kh, /company/i), name: col(kh, /contact name|^name/i), title: col(kh, /title|designation/i), email: col(kh, /^e-?mail/i), phone: col(kh, /phone|mobile/i),
+      website: col(kh, /website|url/i), segment: col(kh, /segment/i), tags: col(kh, /tags/i), customSubject: col(kh, /personal subject/i), customBody: col(kh, /personal email/i) };
+    if (idx.email < 0) throw new Error('The Contacts sheet needs an "Email" column.');
+    var seen = {}, examples = 0, contacts = [];
+    ks.slice(1).forEach(function (r) {
+      if (!r.join('').trim()) return;
+      var o = {}; Object.keys(idx).forEach(function (k) { o[k] = idx[k] >= 0 ? String(r[idx[k]] || '').trim() : ''; });
+      if (/^example/i.test(o.company)) { examples++; return; }
+      o.email = o.email.toLowerCase(); o.ok = true;
+      if (!o.email) { o.ok = false; o.problem = 'no email'; }
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(o.email)) { o.ok = false; o.problem = 'invalid email'; }
+      else if (seen[o.email]) { o.ok = false; o.problem = 'duplicate in file'; }
+      seen[o.email] = 1;
+      if (o.customBody) o.customBody = o.customBody.replace(/\r\n/g, '\n');
+      contacts.push(o);
+    });
+    return { campaign: campaign, steps: steps, contacts: contacts, examples: examples };
+  }
 
   function campaignEditor(c) {
     var steps = (c.steps || []).map(function (s) { return Object.assign({}, s); });
@@ -332,7 +417,7 @@
     api('listContacts').then(function (list) {
       var avail = list.filter(function (x) { return x.status === 'active' && x.email; });
       var m = modal('Add contacts to "' + c.name + '"',
-        '<div class="toolbar"><input id="eq" placeholder="Search"><select id="es"><option value="">All segments</option>' + uniq(avail.map(function (x) { return x.segment; })).map(function (s) { return '<option' + (s === c.segment ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '</select>' +
+        '<div class="toolbar"><input id="eq" placeholder="Search"><select id="es"><option value="">All segments</option>' + uniq(avail.map(function (x) { return x.segment; })).map(function (s) { return '<option>' + esc(s) + '</option>'; }).join('') + '</select>' +
         '<select id="estg"><option value="">All stages</option>' + S.stages.map(function (s) { return '<option>' + s + '</option>'; }).join('') + '</select><label class="row" style="margin:0"><input type="checkbox" id="eall" style="width:auto"> select all shown</label></div>' +
         '<div class="table-wrap" style="max-height:340px"><table id="et"></table></div><div class="row" style="margin-top:12px"><button class="primary" id="ego">Add selected</button><span class="small muted" id="esel"></span></div>');
       var sel = {};

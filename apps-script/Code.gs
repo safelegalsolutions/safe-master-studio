@@ -120,6 +120,13 @@ function append_(name, obj) {
   return obj;
 }
 
+function appendMany_(name, objs) {
+  if (!objs || !objs.length) return;
+  var hdr = SCHEMA[name], sh = sheet_(name);
+  var vals = objs.map(function (o) { return hdr.map(function (h) { return o[h] === undefined ? '' : o[h]; }); });
+  sh.getRange(sh.getLastRow() + 1, 1, vals.length, hdr.length).setValues(vals);
+}
+
 function update_(name, id, patch) {
   var hdr = SCHEMA[name];
   var r = rows_(name).filter(function (x) { return String(x.id) === String(id); })[0];
@@ -270,6 +277,57 @@ var API = {
   setCampaignStatus: function (req) {
     if (['draft', 'active', 'paused', 'done'].indexOf(req.status) < 0) throw new Error('Bad status');
     return update_('Campaigns', req.id, { status: req.status, updatedAt: now_() });
+  },
+
+  // One-step campaign from an Excel upload: add/match contacts, create the campaign,
+  // enrol everyone, queue any personal first emails, and optionally activate ("push").
+  importCampaign: function (req, user) {
+    return withLock_(function () {
+      var c = req.campaign || {};
+      var steps = (c.steps || []).filter(function (s) { return s && String(s.subject || '').trim() && String(s.body || '').trim(); });
+      if (!c.name) throw new Error('The Campaign sheet needs a campaign name.');
+      if (!steps.length) throw new Error('The Emails sheet needs at least one email with a subject and body.');
+      var rows = req.rows || [];
+      if (!rows.length) throw new Error('The Contacts sheet has no contacts.');
+
+      var t = now_();
+      var camp = append_('Campaigns', { name: c.name, segment: c.segment || '', steps: JSON.stringify(steps), useAI: c.useAI ? 'yes' : 'no',
+        requireApproval: c.requireApproval === false ? 'no' : 'yes', status: 'draft', createdBy: user.name, createdAt: t, updatedAt: t });
+
+      var byEmail = {}; rows_('Contacts').forEach(function (x) { if (x.email) byEmail[String(x.email).toLowerCase()] = x; });
+      var newContacts = [], enrols = [], queue = [], acts = [];
+      var added = 0, matched = 0, skipped = 0, personal = 0, notEmailable = 0, seen = {};
+      rows.forEach(function (r) {
+        var em = String(r.email || '').toLowerCase().trim();
+        if (!em || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em) || seen[em]) { skipped++; return; }
+        seen[em] = 1;
+        var ct = byEmail[em];
+        if (ct) { matched++; }
+        else {
+          ct = { id: newId_('Contacts'), company: r.company || '', name: r.name || '', title: r.title || '', email: em, phone: r.phone || '',
+                 website: r.website || '', segment: r.segment || c.segment || '', tags: r.tags || '', stage: 'New', owner: user.name,
+                 source: 'Excel: ' + c.name, status: 'active', createdAt: t, updatedAt: t };
+          newContacts.push(ct); byEmail[em] = ct; added++;
+        }
+        if (ct.status && ct.status !== 'active') { notEmailable++; return; }
+        var en = { id: newId_('Enrollments'), campaignId: camp.id, contactId: ct.id, step: 0, status: 'active', nextSendAt: t, enrolledAt: t };
+        enrols.push(en);
+        acts.push({ id: newId_('Activity'), contactId: ct.id, type: 'enrolled', summary: 'Added to campaign: ' + c.name + ' (Excel upload)', detail: '', by: user.name, at: t });
+        if (String(r.customSubject || '').trim() && String(r.customBody || '').trim()) {
+          queue.push({ id: newId_('Queue'), enrollmentId: en.id, campaignId: camp.id, contactId: ct.id, step: 0, to: em,
+            subject: merge_(r.customSubject, ct), body: merge_(r.customBody, ct),
+            status: c.requireApproval === false ? 'approved' : 'pending_approval', createdAt: t, approvedBy: c.requireApproval === false ? 'auto' : '' });
+          personal++;
+        }
+      });
+      appendMany_('Contacts', newContacts);
+      appendMany_('Enrollments', enrols);
+      appendMany_('Queue', queue);
+      appendMany_('Activity', acts);
+      if (req.activate && enrols.length) update_('Campaigns', camp.id, { status: 'active', updatedAt: now_() });
+      return { campaignId: camp.id, added: added, matched: matched, skipped: skipped, enrolled: enrols.length,
+               personal: personal, notEmailable: notEmailable, activated: !!(req.activate && enrols.length) };
+    });
   },
 
   enroll: function (req, user) {
@@ -446,7 +504,8 @@ function sendApproved_() {
   var enrolls = {}; rows_('Enrollments').forEach(function (e) { enrolls[e.id] = e; });
   var camps = {}; rows_('Campaigns').forEach(function (c) { camps[c.id] = c; });
   var contacts = {}; rows_('Contacts').forEach(function (c) { contacts[c.id] = c; });
-  var batch = rows_('Queue').filter(function (q) { return q.status === 'approved'; }).slice(0, Math.min(room, 25));
+  // Only campaigns that have been pushed (active) send; approved emails of draft or paused campaigns wait.
+  var batch = rows_('Queue').filter(function (q) { return q.status === 'approved' && camps[q.campaignId] && camps[q.campaignId].status === 'active'; }).slice(0, Math.min(room, 25));
   batch.forEach(function (q) {
     var e = enrolls[q.enrollmentId], c = contacts[q.contactId];
     if (!e || e.status !== 'active' || !c || c.status !== 'active') { update_('Queue', q.id, { status: 'rejected', error: 'Contact replied, unsubscribed or was removed before sending' }); return; }
