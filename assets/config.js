@@ -8,7 +8,7 @@ window.SAFE_CONFIG = {
   // Links for the studio buttons on the Master Studio home page.
   STUDIOS: {
     policy:    "https://safelegalsolutions.github.io/safe-policy-studio/",
-    invoice:   "",   // paste the SAFE Invoice Studio GitHub Pages URL here
+    invoice:   "https://safelegalsolutions.github.io/safe-invoice-studio/",   // confirm this matches the Invoice Studio address
     marketing: "marketing/"
   },
 

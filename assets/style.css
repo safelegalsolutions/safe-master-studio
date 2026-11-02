@@ -1,12 +1,12 @@
 /* SAFE Master Studio — shared styles (SAFE maroon on white) */
 :root {
-  --maroon: #800000;
-  --maroon-dark: #5c0000;
-  --maroon-soft: #f7ecec;
+  --maroon: #821526;
+  --maroon-dark: #62101d;
+  --maroon-soft: #f8eced;
   --ink: #1f1f1f;
   --muted: #6b6b6b;
   --line: #e4e0e0;
-  --bg: #faf8f8;
+  --bg: #f4f3f2;
   --card: #ffffff;
   --green: #2e7d32;
   --green-soft: #e6f2e7;
@@ -28,14 +28,17 @@ h1 { font-size: 24px; } h2 { font-size: 18px; } h3 { font-size: 15px; }
 .muted { color: var(--muted); }
 .small { font-size: 12px; }
 
-/* Top bar */
-.topbar { background: var(--maroon); color: #fff; display: flex; align-items: center; gap: 12px; padding: 10px 20px; }
-.topbar .brand { display: flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; font-weight: 700; font-size: 16px; }
-.topbar .brand svg { width: 28px; height: 28px; }
+/* Top bar — white, SAFE shield logo, maroon rule (matches Policy Studio) */
+.serif, h1, .topbar .brand .t1 { font-family: "Source Serif 4", Georgia, "Times New Roman", serif; }
+.topbar { background: #fff; color: var(--ink); display: flex; align-items: center; gap: 12px; padding: 8px 20px; border-bottom: 2px solid var(--maroon); position: sticky; top: 0; z-index: 20; }
+.topbar .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+.topbar .brand img { height: 44px; width: auto; display: block; }
+.topbar .brand .t1 { display: block; color: var(--maroon); font-weight: 700; font-size: 19px; line-height: 1.1; }
+.topbar .brand .t2 { display: block; color: var(--ink); font-size: 10.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; margin-top: 2px; }
 .topbar .spacer { flex: 1; }
-.topbar .user { font-size: 13px; opacity: .9; }
-.topbar button { background: rgba(255,255,255,.15); color: #fff; border: 1px solid rgba(255,255,255,.3); }
-.topbar button:hover { background: rgba(255,255,255,.25); }
+.topbar .user { font-size: 13px; color: var(--muted); }
+.topbar button, .topbar .btn { background: #fff; color: var(--maroon); border: 1px solid var(--maroon); }
+.topbar button:hover, .topbar .btn:hover { background: var(--maroon-soft); }
 
 /* Buttons and inputs */
 button, .btn { font: inherit; cursor: pointer; border-radius: 8px; padding: 7px 14px; border: 1px solid var(--line); background: #fff; color: var(--ink); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }

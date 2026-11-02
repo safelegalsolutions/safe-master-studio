@@ -4,60 +4,73 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SAFE Master Studio</title>
+<link rel="icon" href="assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
 <style>
-  .hero { background: linear-gradient(135deg, var(--maroon) 0%, var(--maroon-dark) 100%); color: #fff; padding: 48px 20px 64px; text-align: center; }
-  .hero h1 { font-size: 30px; margin-bottom: 6px; }
-  .hero p { opacity: .85; margin: 0; }
-  .studios { max-width: 1040px; margin: -40px auto 40px; padding: 0 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
-  .studio { background: #fff; border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); padding: 24px; display: flex; flex-direction: column; gap: 10px; text-decoration: none; color: var(--ink); transition: transform .12s, box-shadow .12s; }
-  .studio:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(128,0,0,.12); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+  .intro { padding: 44px 0 26px; display: flex; align-items: center; gap: 28px; }
+  .intro img { height: 150px; width: auto; flex-shrink: 0; }
+  .intro .eyebrow { color: var(--maroon); font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+  .intro h1 { font-size: 34px; color: var(--ink); margin: 6px 0 8px; }
+  .intro p { color: var(--muted); margin: 0; font-size: 15px; max-width: 560px; }
+  .studios { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; padding-bottom: 40px; }
+  .studio { background: #fff; border: 1px solid var(--line); border-top: 3px solid var(--maroon); border-radius: 12px; box-shadow: var(--shadow); padding: 24px; display: flex; flex-direction: column; gap: 10px; text-decoration: none; color: var(--ink); transition: transform .12s, box-shadow .12s; }
+  .studio:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(130,21,38,.12); }
   .studio .icon { width: 46px; height: 46px; border-radius: 10px; background: var(--maroon-soft); color: var(--maroon); display: grid; place-items: center; }
   .studio .icon svg { width: 24px; height: 24px; }
-  .studio h2 { font-size: 18px; margin: 4px 0 0; }
+  .studio h2 { font-family: "Source Serif 4", Georgia, serif; font-size: 20px; margin: 4px 0 0; color: var(--maroon); }
   .studio p { color: var(--muted); margin: 0; flex: 1; }
-  .studio .go { color: var(--maroon); font-weight: 600; }
-  .studio.disabled { pointer-events: none; }
+  .studio .go { align-self: flex-start; color: var(--maroon); border: 1px solid var(--maroon); border-radius: 8px; padding: 6px 14px; font-weight: 600; font-size: 13px; }
+  .studio:hover .go { background: var(--maroon); color: #fff; }
+  .studio.disabled { pointer-events: none; border-top-color: var(--line); }
   .studio.disabled > * { opacity: .5; }
-  footer { text-align: center; color: var(--muted); font-size: 12px; padding: 20px; }
-  @media (max-width: 860px) { .studios { grid-template-columns: 1fr; } }
+  footer { text-align: center; color: var(--muted); font-size: 12px; padding: 20px; border-top: 1px solid var(--line); }
+  @media (max-width: 860px) { .studios { grid-template-columns: 1fr; } .intro { flex-direction: column; text-align: center; } .intro img { height: 110px; } }
 </style>
 </head>
 <body>
 <div class="topbar">
   <a class="brand" href="./">
-    <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2 4 6.5v8.2C4 22 9.2 27.9 16 30c6.8-2.1 12-8 12-15.3V6.5L16 2Z" fill="#fff"/><text x="16" y="21" text-anchor="middle" font-size="13" font-weight="700" fill="#800000" font-family="Arial">S</text></svg>
-    SAFE Master Studio
+    <img src="assets/logo.png" alt="SAFE Legal Solutions">
+    <span><span class="t1">SAFE Master Studio</span><span class="t2">SAFE Legal Solutions</span></span>
   </a>
 </div>
 
-<section class="hero">
-  <h1>SAFE Master Studio</h1>
-  <p id="tagline">Your legal department, virtually anywhere</p>
-</section>
+<main class="wrap">
+  <section class="intro">
+    <img src="assets/logo.png" alt="">
+    <div>
+      <div class="eyebrow">SAFE Legal Solutions · Internal workspace</div>
+      <h1>SAFE Master Studio</h1>
+      <p id="tagline">Your legal department, virtually anywhere</p>
+    </div>
+  </section>
 
-<section class="studios">
-  <a class="studio" id="go-policy" href="#">
-    <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></div>
-    <h2>SAFE Policy Studio</h2>
-    <p>Generate client policies and agreements on their letterhead, with version control and expiry reminders.</p>
-    <span class="go">Open Policy Studio →</span>
-  </a>
-  <a class="studio" id="go-invoice" href="#">
-    <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg></div>
-    <h2>SAFE Invoice Studio</h2>
-    <p>Create retainer and case invoices and email them to clients.</p>
-    <span class="go">Open Invoice Studio →</span>
-  </a>
-  <a class="studio" id="go-marketing" href="#">
-    <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11v2a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1Z"/><path d="M16 8a5 5 0 0 1 0 8M19 5a9 9 0 0 1 0 14"/></svg></div>
-    <h2>SAFE Marketing Studio</h2>
-    <p>Prospects, email campaigns, follow-ups, reply tracking and pipeline dashboards.</p>
-    <span class="go">Open Marketing Studio →</span>
-  </a>
-</section>
+  <section class="studios">
+    <a class="studio" id="go-policy" href="#">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></div>
+      <h2>SAFE Policy Studio</h2>
+      <p>Generate client policies and agreements on their letterhead, with version control and expiry reminders.</p>
+      <span class="go">Open Policy Studio</span>
+    </a>
+    <a class="studio" id="go-invoice" href="#">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg></div>
+      <h2>SAFE Invoice Studio</h2>
+      <p>Create retainer and case invoices and email them to clients.</p>
+      <span class="go">Open Invoice Studio</span>
+    </a>
+    <a class="studio" id="go-marketing" href="#">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11v2a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1Z"/><path d="M16 8a5 5 0 0 1 0 8M19 5a9 9 0 0 1 0 14"/></svg></div>
+      <h2>SAFE Marketing Studio</h2>
+      <p>Prospects, email campaigns, follow-ups, reply tracking and pipeline dashboards.</p>
+      <span class="go">Open Marketing Studio</span>
+    </a>
+  </section>
+</main>
 
-<footer>SAFE Legal Solutions · Internal use only</footer>
+<footer>SAFE Legal Solutions · Secured by Advocates Freedom Everywhere · Internal use only</footer>
 
 <script src="assets/config.js"></script>
 <script>
@@ -66,7 +79,7 @@
   [["policy", "go-policy"], ["invoice", "go-invoice"], ["marketing", "go-marketing"]].forEach(([k, id]) => {
     const el = document.getElementById(id);
     if (s[k]) { el.href = s[k]; }
-    else { el.classList.add("disabled"); el.querySelector(".go").textContent = "Link not set yet — add it in assets/config.js"; }
+    else { el.classList.add("disabled"); el.querySelector(".go").textContent = "Link not set yet"; }
   });
   if (cfg.FIRM && cfg.FIRM.tagline) document.getElementById("tagline").textContent = cfg.FIRM.tagline;
 </script>

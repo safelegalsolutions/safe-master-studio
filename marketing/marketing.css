@@ -1,7 +1,7 @@
 .login { display: grid; place-items: center; min-height: 80vh; padding: 20px; }
 .login .card { width: min(380px, 100%); }
 
-.layout { display: grid; grid-template-columns: 210px 1fr; min-height: calc(100vh - 48px); }
+.layout { display: grid; grid-template-columns: 210px 1fr; min-height: calc(100vh - 62px); }
 .side { background: #fff; border-right: 1px solid var(--line); padding: 14px 10px; display: flex; flex-direction: column; gap: 2px; }
 .side a { display: flex; justify-content: space-between; align-items: center; padding: 9px 12px; border-radius: 8px; text-decoration: none; color: var(--ink); font-weight: 500; }
 .side a:hover { background: var(--maroon-soft); }
