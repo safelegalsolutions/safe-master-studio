@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SAFE Marketing Studio</title>
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="marketing.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="topbar">
+  <a class="brand" href="../">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2 4 6.5v8.2C4 22 9.2 27.9 16 30c6.8-2.1 12-8 12-15.3V6.5L16 2Z" fill="#fff"/><text x="16" y="21" text-anchor="middle" font-size="13" font-weight="700" fill="#800000" font-family="Arial">S</text></svg>
+    SAFE Marketing Studio
+  </a>
+  <span class="spacer"></span>
+  <span class="user" id="who"></span>
+  <button id="logout" hidden>Sign out</button>
+</div>
+
+<!-- Login -->
+<div id="login" class="login" hidden>
+  <div class="card">
+    <h2>Sign in</h2>
+    <p class="muted small">SAFE team only. Use the email and PIN set up in the Users tab.</p>
+    <label>Email</label><input id="loginEmail" type="email" autocomplete="username">
+    <label>PIN</label><input id="loginPin" type="password" autocomplete="current-password">
+    <div class="row" style="margin-top:14px"><button class="primary" id="loginBtn">Sign in</button><span id="loginErr" class="small" style="color:var(--red)"></span></div>
+  </div>
+</div>
+
+<!-- App -->
+<div id="app" class="layout" hidden>
+  <nav class="side" id="nav">
+    <a href="#dashboard" data-v="dashboard">Dashboard</a>
+    <a href="#contacts" data-v="contacts">Contacts</a>
+    <a href="#pipeline" data-v="pipeline">Pipeline</a>
+    <a href="#campaigns" data-v="campaigns">Campaigns</a>
+    <a href="#approvals" data-v="approvals">Approvals <span class="count" id="cntApprovals"></span></a>
+    <a href="#replies" data-v="replies">Replies</a>
+    <a href="#tasks" data-v="tasks">Follow-up tasks <span class="count" id="cntTasks"></span></a>
+    <a href="#settings" data-v="settings" id="navSettings">Settings</a>
+  </nav>
+  <main id="view"></main>
+</div>
+
+<div id="modalRoot"></div>
+
+<script src="../assets/config.js"></script>
+<script src="mock.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
