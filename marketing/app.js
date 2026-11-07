@@ -350,7 +350,7 @@
     var campaign = { name: setting(/campaign name/i), segment: setting(/segment/i), requireApproval: setting(/approval/i) === '' ? true : yes(setting(/approval/i)), useAI: yes(setting(/personali[sz]e|\bai\b/i)) };
     if (!campaign.name) throw new Error('Fill in the campaign name on the Campaign sheet.');
     var col = function (hdr, re) { for (var i = 0; i < hdr.length; i++) if (re.test(String(hdr[i]))) return i; return -1; };
-    var eh = es[0] || [], cDays = col(eh, /day|after/i), cSub = col(eh, /subject/i), cBody = col(eh, /text|body|email$/i);
+    var eh = es[0] || [], cDays = col(eh, /day|after/i), cSub = col(eh, /subject/i), cBody = col(eh, /text|body/i);
     if (cSub < 0 || cBody < 0) throw new Error('The Emails sheet needs "Subject" and "Email text" columns.');
     var steps = es.slice(1).filter(function (r) { return String(r[cSub]).trim() && String(r[cBody]).trim(); }).map(function (r, i) {
       return { dayOffset: i === 0 ? 0 : Math.max(1, parseInt(r[cDays], 10) || 3), subject: String(r[cSub]).trim(), body: String(r[cBody]).replace(/\r\n/g, '\n').trim() };
