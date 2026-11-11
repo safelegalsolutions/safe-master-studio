@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verify a SAFE DPDPA Certificate</title>
+<link rel="icon" href="assets/img/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="assets/dpdpa.css">
+<style>
+  .vwrap { max-width: 640px; margin: 40px auto; padding: 0 16px; }
+  .vcard { text-align: center; }
+  .vcard img { height: 110px; }
+  .status { font-size: 22px; font-weight: 700; font-family: "Source Serif 4", Georgia, serif; margin: 10px 0; }
+  .status.ok { color: var(--green); } .status.bad { color: var(--red); }
+  .vt { width: 100%; text-align: left; margin-top: 12px; } .vt td { padding: 7px 8px; border-bottom: 1px solid var(--line); } .vt td:first-child { color: var(--muted); width: 38%; }
+</style>
+</head>
+<body>
+<div class="topbar"><span class="brand"><img src="assets/img/logo.png" alt="SAFE Legal Solutions"><span><span class="t1">Certificate verification</span><span class="t2">SAFE Legal Solutions</span></span></span></div>
+<div class="vwrap">
+  <div class="card vcard">
+    <img src="assets/img/logo.png" alt="">
+    <h1 class="serif" style="color:var(--maroon)">Verify a DPDPA certificate</h1>
+    <p class="muted">Check the live status of a Certificate of DPDPA Compliance issued by SAFE Legal Solutions.</p>
+    <form id="vf" class="row" style="justify-content:center"><input id="vno" placeholder="Certificate number, e.g. SAFE-DPDPA-2026-00001" style="max-width:360px"><button class="primary">Verify</button></form>
+    <div id="vres"></div>
+  </div>
+  <p class="small muted" style="text-align:center;margin-top:14px">SAFE Legal Solutions · Bengaluru · info@safelegal.org · +91-9886181839. A SAFE certificate is not issued by the Data Protection Board of India.</p>
+</div>
+<script src="../assets/config.js"></script>
+<script src="assets/js/controls.js"></script>
+<script src="assets/js/engine.js"></script>
+<script src="assets/js/report.js"></script>
+<script src="assets/js/api.js"></script>
+<script src="assets/js/mock.js"></script>
+<script>
+(function () {
+  const S = window.SAFE, esc = S.esc;
+  const out = document.getElementById('vres');
+  async function check(no) {
+    if (!no) return;
+    out.innerHTML = '<p><span class="spin"></span> Checking…</p>';
+    try {
+      const r = await S.verifyRemote(no.trim());
+      if (!r.ok) { out.innerHTML = '<div class="status bad">Not found</div><p>' + esc(r.error || 'No certificate with this number was issued by SAFE Legal Solutions.') + '</p>'; return; }
+      const c = r.cert;
+      const live = c.status === 'valid' && S.today() <= c.validUntil;
+      const label = live ? 'Valid' : c.status === 'suspended' ? 'Suspended' : c.status === 'revoked' ? 'Revoked' : 'Expired';
+      out.innerHTML = '<div class="status ' + (live ? 'ok' : 'bad') + '">' + (live ? '✓ ' : '✕ ') + label + '</div>' +
+        '<table class="vt"><tr><td>Certificate number</td><td><b>' + esc(c.no) + '</b></td></tr><tr><td>Organisation</td><td><b>' + esc(c.clientName) + '</b></td></tr><tr><td>Scope</td><td>' + esc(c.scope) + '</td></tr><tr><td>Opinion</td><td>' + esc(c.opinion) + (c.readiness ? ' (including obligations in force from 13 May 2027)' : '') + '</td></tr><tr><td>Issued</td><td>' + S.fmtDate(c.issued) + '</td></tr><tr><td>Valid until</td><td>' + S.fmtDate(c.validUntil) + '</td></tr><tr><td>Signed by</td><td>' + esc(c.signedBy) + ', for SAFE Legal Solutions</td></tr></table>';
+    } catch (e) { out.innerHTML = '<div class="status bad">Could not check</div><p>' + esc(e.message) + '</p>'; }
+  }
+  document.getElementById('vf').onsubmit = (e) => { e.preventDefault(); check(document.getElementById('vno').value); };
+  const q = new URLSearchParams(location.search).get('no');
+  if (q) { document.getElementById('vno').value = q; check(q); }
+})();
+</script>
+</body>
+</html>

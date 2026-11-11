@@ -15,7 +15,7 @@
   .intro .eyebrow { color: var(--maroon); font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
   .intro h1 { font-size: 34px; color: var(--ink); margin: 6px 0 8px; }
   .intro p { color: var(--muted); margin: 0; font-size: 15px; max-width: 560px; }
-  .studios { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; padding-bottom: 40px; }
+  .studios { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; padding-bottom: 40px; }
   .studio { background: #fff; border: 1px solid var(--line); border-top: 3px solid var(--maroon); border-radius: 12px; box-shadow: var(--shadow); padding: 24px; display: flex; flex-direction: column; gap: 10px; text-decoration: none; color: var(--ink); transition: transform .12s, box-shadow .12s; }
   .studio:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(130,21,38,.12); }
   .studio .icon { width: 46px; height: 46px; border-radius: 10px; background: var(--maroon-soft); color: var(--maroon); display: grid; place-items: center; }
@@ -67,6 +67,12 @@
       <p>Prospects, email campaigns, follow-ups, reply tracking and pipeline dashboards.</p>
       <span class="go">Open Marketing Studio</span>
     </a>
+    <a class="studio" id="go-dpdpa" href="#">
+      <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5z"/><path d="m9 12 2 2 4-4"/></svg></div>
+      <h2>SAFE DPDPA Compliance Studio</h2>
+      <p>AI-driven DPDPA assessment, audit, policy drafting, remediation and SAFE certificates, with a client portal and renewal reminders.</p>
+      <span class="go">Open DPDPA Studio</span>
+    </a>
   </section>
 </main>
 
@@ -76,7 +82,7 @@
 <script>
   const cfg = window.SAFE_CONFIG || {};
   const s = cfg.STUDIOS || {};
-  [["policy", "go-policy"], ["invoice", "go-invoice"], ["marketing", "go-marketing"]].forEach(([k, id]) => {
+  [["policy", "go-policy"], ["invoice", "go-invoice"], ["marketing", "go-marketing"], ["dpdpa", "go-dpdpa"]].forEach(([k, id]) => {
     const el = document.getElementById(id);
     if (s[k]) { el.href = s[k]; }
     else { el.classList.add("disabled"); el.querySelector(".go").textContent = "Link not set yet"; }
