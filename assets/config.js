@@ -7,7 +7,7 @@ window.SAFE_CONFIG = {
 
   // Web app URL of the DPDPA Compliance Studio Apps Script deployment (dpdpa/apps-script).
   // Leave empty to run the DPDPA Studio in demo mode.
-  DPDPA_API_URL: "https://script.google.com/macros/s/XXXXXXXX/exec",
+  DPDPA_API_URL: "https://script.google.com/macros/s/AKfycbwlftxVLUluJBqmnIzL0Cd6JVjXEGtp00DJwnqNbOt9d-TEMA-F2YOkFNaacPXB6Gqi/exec",
 
   // Links for the studio buttons on the Master Studio home page.
   STUDIOS: {
