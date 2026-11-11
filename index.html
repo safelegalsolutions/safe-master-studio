@@ -67,11 +67,11 @@
       <p>Prospects, email campaigns, follow-ups, reply tracking and pipeline dashboards.</p>
       <span class="go">Open Marketing Studio</span>
     </a>
-    <a class="studio" id="go-dpdpa" href="#">
+    <a class="studio" id="go-audits" href="#">
       <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5z"/><path d="m9 12 2 2 4-4"/></svg></div>
-      <h2>SAFE DPDPA Compliance Studio</h2>
-      <p>AI-driven DPDPA assessment, audit, policy drafting, remediation and SAFE certificates, with a client portal and renewal reminders.</p>
-      <span class="go">Open DPDPA Studio</span>
+      <h2>SAFE Legal Workplace Compliance Audits</h2>
+      <p>DPDPA, Labour Codes, POSH &amp; DEI, Corporate Legal and Contract compliance audits — assessment, policy drafting, signed reports and SAFE certificates, with a client portal and renewal reminders.</p>
+      <span class="go">Open Compliance Audits</span>
     </a>
   </section>
 </main>
@@ -81,8 +81,8 @@
 <script src="assets/config.js"></script>
 <script>
   const cfg = window.SAFE_CONFIG || {};
-  const s = cfg.STUDIOS || {};
-  [["policy", "go-policy"], ["invoice", "go-invoice"], ["marketing", "go-marketing"], ["dpdpa", "go-dpdpa"]].forEach(([k, id]) => {
+  const s = Object.assign({ audits: 'audits/' }, cfg.STUDIOS || {});
+  [["policy", "go-policy"], ["invoice", "go-invoice"], ["marketing", "go-marketing"], ["audits", "go-audits"]].forEach(([k, id]) => {
     const el = document.getElementById(id);
     if (s[k]) { el.href = s[k]; }
     else { el.classList.add("disabled"); el.querySelector(".go").textContent = "Link not set yet"; }
