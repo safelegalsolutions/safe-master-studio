@@ -18,7 +18,7 @@
   function showLogin(msg) {
     $('#logout').hidden = true; $('#fab').hidden = true; $('#who').textContent = '';
     $('#demoFlag').hidden = !S.DEMO;
-    $('#main').innerHTML = '<div class="card login-card"><img src="assets/img/logo.png" alt=""><h1 class="serif" style="color:var(--maroon);margin-top:8px">Compliance Audit Portal</h1><p class="muted">SAFE Legal Solutions guides your organisation through its workplace compliance audits: data protection, labour, POSH and DEI, corporate and contract compliance.</p>' +
+    $('#main').innerHTML = '<div class="card login-card"><img src="assets/img/logo.png" alt=""><h1 class="serif" style="color:var(--maroon);margin-top:8px">Compliance Audit Portal</h1><p class="muted">SAFE Legal Solutions guides your organisation through its workplace compliance audits: data protection, labour, POSH and DEI, corporate, contract and AI compliance.</p>' +
       (portalId ? '' : '<div class="banner">This link is incomplete. Please use the link SAFE Legal sent you.</div>') + (msg ? '<div class="banner">' + esc(msg) + '</div>' : '') +
       '<form id="pl" style="text-align:left"><label>Your name (recorded against your answers)</label><input id="pn" required value="' + esc(st.who) + '"><label>6-digit PIN from SAFE Legal</label><input id="pp" type="password" inputmode="numeric" maxlength="6" required><button class="primary" style="width:100%;justify-content:center;margin-top:14px">Open portal</button></form>' +
       (S.DEMO ? '<p class="small muted" style="margin-top:12px">Demo: PIN 123456.</p>' : '') + '</div>';
@@ -260,6 +260,7 @@
     labour: [['breach', 'A serious workplace accident, labour inspection order, strike or labour dispute'], ['systems', 'A new establishment, factory or state of operation'], ['data', 'Headcount crossing 20, 50, 100 or 300'], ['vendors', 'New contractors or contract labour'], ['merger', 'A merger, acquisition, retrenchment or closure']],
     poshdei: [['breach', 'A POSH complaint not resolved within 90 days, or a discrimination claim or notice'], ['systems', 'A change in Internal Committee members or the external member'], ['data', 'A new office or branch'], ['vendors', 'A change in grievance or complaint officers'], ['merger', 'A merger, acquisition or major restructuring']],
     corporate: [['breach', 'A regulatory notice, penalty, raid or prosecution'], ['systems', 'A new licence, business line or location'], ['data', 'Foreign investment received or made'], ['vendors', 'A material new litigation'], ['merger', 'A merger, acquisition or change in control']],
+    ai: [['breach', 'An AI incident: harmful or wrong output, a data leak, a bias complaint or a deepfake involving you'], ['systems', 'A new AI system, model or AI vendor'], ['data', 'AI now used for decisions about people (hiring, credit, insurance, health)'], ['vendors', 'Personal data newly sent to an AI provider, or AI offered to users abroad'], ['merger', 'A merger, acquisition or change in control']],
     contract: [['breach', 'A material contract dispute, claim or termination'], ['systems', 'A change in contract templates or the signing process'], ['data', 'A new category of contract (for example foreign, consumer, financing)'], ['vendors', 'A new critical vendor'], ['merger', 'A merger, acquisition or change in control']]
   };
   function pulseDue() {

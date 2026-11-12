@@ -109,7 +109,7 @@
     const byStage = S.STAGES.map((s) => ({ s, list: audits.filter((a) => a.stage === s.id) }));
     const renew = certs.filter((x) => ['expiring', 'expired', 'suspended'].includes(S.certStatus(x)));
     const waiting = audits.filter((a) => a.stage === 'audit' || a.stage === 'signoff');
-    $('#main').innerHTML = '<div class="page-head"><div><h1 class="serif">Dashboard</h1><div class="sub">DPDPA, Labour Codes, POSH & DEI, Corporate Legal and Contract compliance audits across all clients</div></div><button class="primary" data-act="new-client">+ New client</button></div>' +
+    $('#main').innerHTML = '<div class="page-head"><div><h1 class="serif">Dashboard</h1><div class="sub">DPDPA, Labour Codes, POSH & DEI, Corporate Legal, Contract and AI Governance audits across all clients</div></div><button class="primary" data-act="new-client">+ New client</button></div>' +
       (S.DEMO ? '<div class="banner">Demo mode: SAFE AI answers are simulated and data is kept only in this browser. Add the backend URL in <span class="mono">assets/config.js</span> to go live.</div>' : '') +
       (!S.DEMO && !b.settings.aiConnected ? '<div class="banner">SAFE AI is not connected. An admin must add the SAFE AI key in Settings.</div>' : '') +
       '<div class="kpis">' +
@@ -133,7 +133,7 @@
     const tabs = [['overview', 'Overview'], ['environment', 'Environment'], ['assessment', 'Assessment'], ['documents', 'Documents'], ['audit', 'Audit and findings', nReview], ['reports', 'Reports and certificate'], ['activity', 'Activity']];
     $('#main').innerHTML = '<div class="page-head"><div><h1 class="serif">' + esc(c.name) + '</h1><div class="sub">' + esc(c.legalName || '') + (a ? ' · ' + esc(S.fw(a).name) + ' ' + esc(a.ref) + ' (' + (a.type === 'renewal' ? 'annual re-audit' : 'initial') + ')' : '') + '</div></div><div class="row"><button data-act="edit-client">Client details</button></div></div>' +
       S.auditSwitcher(clientAudits(c.id), a && a.id, true) +
-      (a ? S.stepper(a.stage) + '<div class="tabs">' + tabs.map(([id, l, n]) => '<button data-tab="' + id + '" class="' + (st.tab === id ? 'on' : '') + '">' + l + (n ? '<span class="count">' + n + '</span>' : '') + '</button>').join('') + '</div><div id="tabBody"></div>' : '<div class="empty">No audit is open for this client. Click <b>+ Add audit</b> to choose DPDPA, Labour Codes, POSH & DEI, Corporate Legal or Contract compliance.</div>');
+      (a ? S.stepper(a.stage) + '<div class="tabs">' + tabs.map(([id, l, n]) => '<button data-tab="' + id + '" class="' + (st.tab === id ? 'on' : '') + '">' + l + (n ? '<span class="count">' + n + '</span>' : '') + '</button>').join('') + '</div><div id="tabBody"></div>' : '<div class="empty">No audit is open for this client. Click <b>+ Add audit</b> to choose DPDPA, Labour Codes, POSH & DEI, Corporate Legal, Contract or AI Governance.</div>');
     if (!a) return;
     ({ overview: tabOverview, environment: tabEnvironment, assessment: tabAssessment, documents: tabDocuments, audit: tabAudit, reports: tabReports, activity: tabActivity })[st.tab]();
   }

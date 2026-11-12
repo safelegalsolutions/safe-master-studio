@@ -1,6 +1,6 @@
 # SAFE Legal Workplace Compliance Audits
 
-One studio in SAFE Master Studio for five law-firm compliance audits:
+One studio in SAFE Master Studio for six law-firm compliance audits:
 
 | Audit | Covers | Controls |
 |---|---|---|
@@ -9,6 +9,7 @@ One studio in SAFE Master Studio for five law-firm compliance audits:
 | **POSH and DEI Compliance** | POSH Act, 2013; RPwD Act; Transgender Persons Act; equal pay; maternity; HIV and Mental Healthcare Acts; Board diversity | 40 |
 | **Corporate Legal Compliance** | Applicable-law register, licences, Companies Act (legal), FEMA, anti-bribery, competition, consumer, PMLA, environment, IP | 41 |
 | **Contract Compliance** | Authority, stamping, registration, e-signatures, key terms, restrictive covenants, DPAs, MSME and regulatory clauses | 34 |
+| **AI Governance and Compliance** | DPDPA and AI, IT Rules 2026 on synthetic content (deepfake labelling, takedowns), CERT-In, consumer and dark-pattern rules, copyright, AI in HR, RBI FREE-AI, SEBI AI/ML responsibility, ICMR, MeitY India AI Governance Guidelines 2025, ISO/IEC 42001 | 55 |
 
 A client can have several audits open at once. The organisation profile is answered once and copied into each new audit.
 
@@ -46,7 +47,7 @@ Grading follows ISO 19011:
 
 A legal non-compliance is never graded below Should have. Three Should-haves in one area become a systemic Must-have.
 
-Certificate numbers show the audit type, for example `SAFE-LABOUR-2026-00012`, `SAFE-POSHDEI-…`, `SAFE-CORP-…`, `SAFE-CONTRACT-…` and `SAFE-DPDPA-…`.
+Certificate numbers show the audit type, for example `SAFE-LABOUR-2026-00012`, `SAFE-POSHDEI-…`, `SAFE-CORP-…`, `SAFE-CONTRACT-…`, `SAFE-AI-…` and `SAFE-DPDPA-…`.
 
 ## First-time set-up (new installation)
 
@@ -75,6 +76,7 @@ audits/
 │   ├── fw-poshdei.js      POSH and DEI
 │   ├── fw-corporate.js    Corporate legal compliance
 │   ├── fw-contract.js     Contract compliance
+│   ├── fw-ai.js           AI governance and compliance
 │   ├── engine.js          applicability, grading, scoring, opinion, certificate rules, workflow
 │   ├── report.js          audit report (with signature block), client documents, certificate
 │   ├── docxgen.js         Word generator (no heading collapse arrows)
