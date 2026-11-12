@@ -39,7 +39,7 @@
       ],
       clients: [{ id: cid, name: 'Nimbus HealthTech', legalName: env.legalName, industry: env.industry, website: env.website, contacts: [{ name: 'Priya Rao', email: 'privacy@nimbushealth.example', role: 'Head – Compliance' }], portal: { id: 'demo-nimbus', enabled: true, pin: '123456' }, activeAudits: { dpdpa: audit.id }, stages: { dpdpa: 'assessment' }, stage: 'assessment', createdAt: now(), certs: [], tier: 'mid' }],
       audits: { [audit.id]: audit }, certs: [], counters: { audit: 1, cert: 0 }, auditIndex: [{ id: audit.id, clientId: cid, framework: 'dpdpa', ref: audit.ref, type: 'initial', createdAt: audit.createdAt }],
-      settings: { safeTo: 'info@safelegal.org', safeCc: 'operations@safelegal.org', fromAddress: 'operations@safelegal.org', senderName: 'SAFE Legal Solutions', studioUrl: '', reminderDaysBefore: 60, reminderIntervalDays: 7, pulseGraceDays: 30, usdInr: 100, prices: { 'claude-sonnet-5-5': { in: 2, out: 10 }, 'claude-opus-5-5': { in: 4, out: 20 } }, budgets: { small: 3000, mid: 6000, large: 15000 }, budgetAlertPct: 80, requireIndependence: true, reportIssuers: 'admin', signatoryName: 'Adv. Sandeep Kumar N', signatoryTitle: 'Founder and Managing Partner', signatoryEnrolment: '', hasSignature: false, engineStandard: 'claude-sonnet-5-5', engineAudit: 'claude-opus-5-5', aiConnected: true, aiKeyHint: 'demo' },
+      settings: { safeTo: 'info@safelegal.org', safeCc: 'operations@safelegal.org', fromAddress: 'operations@safelegal.org', senderName: 'SAFE Legal Solutions', studioUrl: '', reminderDaysBefore: 60, reminderIntervalDays: 7, pulseGraceDays: 30, usdInr: 100, prices: { 'claude-sonnet-5-5': { in: 2, out: 10 }, 'claude-opus-5-5': { in: 4, out: 20 } }, budgets: { small: 3000, mid: 6000, large: 15000 }, budgetAlertPct: 80, aiBlockInr: 2500, aiShowInr: false, requireIndependence: true, reportIssuers: 'admin', signatoryName: 'Adv. Sandeep Kumar N', signatoryTitle: 'Founder and Managing Partner', signatoryEnrolment: '', hasSignature: false, engineStandard: 'claude-sonnet-5-5', engineAudit: 'claude-opus-5-5', aiConnected: true, aiKeyHint: 'demo' },
       files: {}, mails: []
     };
   }
@@ -89,14 +89,27 @@
     const view = { client: { id: c.id, name: c.name, legalName: c.legalName, industry: c.industry, contacts: c.contacts || [], letterhead: c.letterhead || null }, certs: db.certs.filter((x) => x.clientId === c.id).map(pubCert),
       audits: ids.map((id) => db.audits[id]).filter(Boolean).map((x) => ({ id: x.id, ref: x.ref, framework: x.framework || 'dpdpa', stage: x.stage, type: x.type, createdAt: x.createdAt })), audit: null };
     if (a) {
-      const budget = c.budgetInr || db.settings.budgets[c.tier || S.sizeTier(a.env)] || 0;
       view.audit = { id: a.id, ref: a.ref, framework: a.framework || 'dpdpa', type: a.type, stage: a.stage, createdAt: a.createdAt, env: a.env, responses: a.responses, roleMemo: a.roleMemo || null,
         evidence: (a.evidence || []).filter((e) => !e.deleted), findings: (a.reports || []).some((r) => r.kind === 'interim') ? a.findings : [],
         docs: (a.docs || []).filter((d) => d.status === 'approved' || d.status === 'issued' || d.requestedByClient), reports: a.reports || [],
-        aiBudget: { usedInr: Math.round(a.usage.inr || 0), budgetInr: budget, blocked: budget > 0 && a.usage.inr >= budget } };
+        aiBudget: aiBudgetView(db, c, a) };
     }
     return view;
   }
+
+  function budgetFor(db, c, a) {
+    const base = Number(c.budgetInr || db.settings.budgets[c.tier || S.sizeTier(a.env)] || 0);
+    return base ? base + Number((a.aiExtra && a.aiExtra.inr) || 0) : 0;
+  }
+  function aiBudgetView(db, c, a) {
+    const s = db.settings, budget = budgetFor(db, c, a), used = (a.usage && a.usage.inr) || 0, rq = (a.aiExtra && a.aiExtra.requests) || [];
+    const pend = rq.find((x) => x.status === 'pending'); const last = rq.filter((x) => x.status !== 'pending' && !x.bySafe).slice(-1)[0];
+    return { budgetInr: budget, includedInr: budget - Number((a.aiExtra && a.aiExtra.inr) || 0), extraBlocks: (a.aiExtra && a.aiExtra.blocks) || 0,
+      pct: budget ? Math.min(100, Math.round((used / budget) * 100)) : 0, blocked: budget > 0 && used >= budget, alertPct: Number(s.budgetAlertPct || 80),
+      showInr: !!s.aiShowInr, usedInr: s.aiShowInr ? Math.round(used) : null, blockInr: Number(s.aiBlockInr || 2500),
+      pending: pend ? { at: pend.at } : null, lastDecision: last ? { status: last.status, at: last.decidedAt } : null };
+  }
+  S.mockBudgetFor = budgetFor;
 
   // ------------------------------------------------------------ simulated SAFE AI
   function meter(a, task, inTok, outTok, audit) {
@@ -201,7 +214,13 @@
           save(); return PV();
         }
         case 'portalGetFile': { const f = db.files[req.fileId]; if (!f) throw new Error('In the demo, files larger than about 300 KB are not kept in the browser.'); return f; }
-        case 'portalAi': return MOCK_AI(db, a, c, req, who, true);
+        case 'portalAi': { if (a) { const b = budgetFor(db, c, a); if (b > 0 && a.usage.inr >= b) throw new Error('This audit has used its included SAFE AI allowance. Use "Request more SAFE AI" on your portal home page, and SAFE Legal will confirm with you before any additional charge.'); } return MOCK_AI(db, a, c, req, who, true); }
+        case 'portalAiRequest': {
+          if (!a) throw new Error('No audit is open yet.');
+          a.aiExtra = a.aiExtra || { inr: 0, blocks: 0, requests: [] };
+          if (!a.aiExtra.requests.some((x) => x.status === 'pending')) { a.aiExtra.requests.push({ id: 'x' + tok().slice(0, 8), at: now(), by: who, status: 'pending', blockInr: db.settings.aiBlockInr || 2500, note: req.note || '' }); log(a, who, 'Client requested extra SAFE AI usage'); mail(db, db.settings.safeTo, 'Client requests extra SAFE AI usage'); save(); }
+          return PV();
+        }
         default: throw new Error('Unknown action.');
       }
     }
@@ -259,6 +278,21 @@
       case 'uploadSignature': if (me.role !== 'admin') throw new Error('Only an admin can change the report signature.'); db.signature = { data: req.data, mime: req.mime, width: req.width, height: req.height }; db.settings.hasSignature = true; save(); return { ok: true };
       case 'getSignature': if (me.role === 'member') throw new Error('Not allowed.'); return db.signature || null;
       case 'getAudit': return audit(db, req.auditId);
+      case 'aiExtend': {
+        if (me.role !== 'admin') throw new Error('Only an admin can approve extra SAFE AI usage, because it is billed to the client.');
+        a = audit(db, req.auditId); const block = Number(db.settings.aiBlockInr || 2500);
+        a.aiExtra = a.aiExtra || { inr: 0, blocks: 0, requests: [] };
+        const rq = req.requestId ? a.aiExtra.requests.find((x) => x.id === req.requestId) : null;
+        if (req.requestId && (!rq || rq.status !== 'pending')) throw new Error('This request has already been dealt with.');
+        if (req.approve === false) { if (!rq) throw new Error('Choose a pending request to decline.'); Object.assign(rq, { status: 'declined', decidedBy: me.email, decidedAt: now() }); log(a, me.email, 'Declined the request for extra SAFE AI usage'); }
+        else {
+          const n = Math.max(1, Math.min(10, Number(req.blocks || 1))); a.aiExtra.blocks += n; a.aiExtra.inr += n * block;
+          if (rq) Object.assign(rq, { status: 'approved', decidedBy: me.email, decidedAt: now(), blocks: n });
+          else a.aiExtra.requests.push({ id: 'x' + tok().slice(0, 8), at: now(), by: me.email, status: 'approved', blocks: n, blockInr: block, decidedBy: me.email, decidedAt: now(), bySafe: true });
+          a.usage.alerted = ''; log(a, me.email, 'Approved ' + n + ' extra SAFE AI block(s) of ₹' + block + ' (billable to the client: ₹' + (n * block) + ')');
+        }
+        mail(db, 'client', 'Extra SAFE AI usage ' + (req.approve === false ? 'not approved' : 'approved')); save(); return a;
+      }
       case 'saveAudit': a = audit(db, req.auditId); applyPatch(a, req.patch || {}, me.email, true); if (req.logNote) log(a, me.email, req.logNote); setStage(db, a); save(); return a;
       case 'uploadEvidence': { a = audit(db, req.auditId); const ev = addEvidence(db, a, req, me.email + ' (SAFE)'); save(); return { audit: a, evidenceId: ev.id }; }
       case 'deleteEvidence': a = audit(db, req.auditId); a.evidence.forEach((e) => { if (e.id === req.evidenceId) { e.deleted = true; e.controlIds = []; } }); save(); return a;

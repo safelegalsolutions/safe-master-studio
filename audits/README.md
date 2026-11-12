@@ -33,6 +33,13 @@ The old `dpdpa/` links redirect to the new pages, so links already sent to clien
 2. **Apps Script.** In the existing project, replace `Code.gs` with `audits/apps-script/Code.gs`. Then go to **Deploy → Manage deployments → Edit (pencil) → Version: New version → Deploy**. The web app URL stays the same. Your Drive folder, team and settings are kept.
 3. **Settings.** Sign in as admin and upload the signature image under **Signed audit reports**. Then change **Studio web address** to `https://safelegalsolutions.github.io/safe-master-studio/audits/`.
 
+## SAFE AI allowance (billing)
+
+- Each audit includes a SAFE AI allowance in the audit fee: by default ₹3,000 (small), ₹6,000 (mid-size) or ₹15,000 (large). Change these in **Settings**, or set a client-specific amount in **Client details**.
+- The client portal shows the share of the allowance used and a disclaimer that extra usage is charged only with the client's approval. **Settings → What clients see** can also show rupee amounts.
+- SAFE is emailed at 80%. At 100% portal SAFE AI pauses (the client can still answer, upload and submit) and the client can click **Request more SAFE AI**.
+- An admin approves or declines each request on the client overview (**SAFE AI allowance** card), or adds a block without a request. Each extra block (default ₹2,500) is billable to the client; approvals are logged in the activity log and the client is told by email.
+
 ## Workflow (same for every audit)
 
 Onboarding → environment assessment (client) → assessment and evidence (client + SAFE AI) → SAFE AI audit → interim report → remediation → advocate sign-off → certificate (12 months, quarterly pulse checks, renewal reminders from 60 days before expiry).

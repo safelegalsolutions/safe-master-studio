@@ -72,10 +72,31 @@
       '<div class="card"><div class="head"><h2>How this works</h2></div><ol class="small" style="margin:0;padding-left:18px;line-height:1.7"><li><b>About your organisation</b> — about 15 minutes. It tells SAFE AI which parts of the law apply to you.</li><li><b>Assessment</b> — guided questions on each obligation, with follow-up questions from SAFE AI. Upload policies, screenshots or records as evidence.</li><li><b>Documents</b> — if you do not have a required policy or notice, SAFE AI drafts it on your letterhead for SAFE\'s advocates to review.</li><li><b>Audit</b> — SAFE grades every control as <b>Must have</b>, <b>Should have</b> or <b>Might have</b> and issues an interim report.</li><li><b>Findings</b> — you fix the gaps; SAFE AI verifies each fix.</li><li><b>Certificate</b> — a SAFE advocate signs your certificate, valid for 12 months, with quarterly check-ins and a reminder 60 days before renewal.</li></ol></div></div>' +
       '<div class="stack">' + (S.scores(a).domains.length ? '<div class="card"><div class="head"><h2>Your score by area</h2></div>' + S.domainBars(S.scores(a)) + '</div>' : '') +
       ((a.reports || []).length ? '<div class="card"><div class="head"><h2>Reports</h2></div>' + a.reports.map((r) => '<div class="list-row"><span>' + (r.kind === 'final' ? 'Final' : 'Interim') + ' audit report · ' + S.fmtDate(r.at) + '</span>' + (r.htmlId ? '<button class="small" data-dl="' + r.htmlId + '" data-name="' + esc(a.ref.replace(/\//g, '-') + ' ' + r.kind + ' audit report.docx') + '">Download</button>' : '') + '</div>').join('') + '</div>' : '') +
-      '<div class="card"><div class="head"><h2>SAFE AI</h2></div><p class="small">Ask SAFE AI anything about the law and your audit, at any time, using the button at the bottom right. SAFE\'s advocates confirm every conclusion in your audit report.</p><p class="small muted">SAFE AI usage on this audit: ' + S.inr(a.aiBudget.usedInr) + (a.aiBudget.budgetInr ? ' of ' + S.inr(a.aiBudget.budgetInr) + ' included' : '') + '.</p></div></div></div>';
+      aiAllowanceCard(a.aiBudget) + '</div></div>';
     wireCommon();
   }
+  function aiAllowanceCard(b) {
+    b = b || {};
+    const ask = '<p class="small">Ask SAFE AI anything about the law and your audit, at any time, using the button at the bottom right. SAFE\'s advocates confirm every conclusion in your audit report.</p>';
+    if (!b.budgetInr) return '<div class="card"><div class="head"><h2>SAFE AI</h2></div>' + ask + '</div>';
+    const warn = !b.blocked && b.pct >= (b.alertPct || 80);
+    const tone = b.blocked ? 'var(--red, #b42318)' : warn ? 'var(--amber, #b54708)' : '';
+    const used = b.showInr && b.usedInr !== null ? S.inr(b.usedInr) + ' of ' + S.inr(b.budgetInr) + ' used (' + b.pct + '%)' : b.pct + '% of your SAFE AI allowance used';
+    let state = '';
+    if (b.pending) state = '<p class="small"><b>Request sent on ' + S.fmtDate(b.pending.at) + '.</b> SAFE Legal will confirm with you before any additional charge.</p>';
+    else if (b.blocked) state = '<p class="small" style="color:' + tone + '"><b>Your included SAFE AI allowance is used up, so SAFE AI is paused for this audit.</b> You can still answer questions, upload evidence and submit. Ask for more if you need SAFE AI\'s help.</p><button class="primary" data-act="ai-request">Request more SAFE AI</button>';
+    else if (warn) state = '<p class="small" style="color:' + tone + '"><b>You have used most of your included SAFE AI allowance.</b> If you expect to need more, you can ask now.</p><button data-act="ai-request">Request more SAFE AI</button>';
+    if (!b.pending && b.lastDecision && b.lastDecision.status === 'declined') state = '<p class="small muted">Your last request (' + S.fmtDate(b.lastDecision.at) + ') was not approved. Your SAFE Legal contact will advise on next steps.</p>' + state;
+    return '<div class="card"><div class="head"><h2>SAFE AI allowance</h2></div>' + ask +
+      '<div class="progress"><div style="width:' + b.pct + '%' + (tone ? ';background:' + tone : '') + '"></div></div><p class="small" style="margin-top:6px">' + used + (b.extraBlocks ? ' · includes ' + b.extraBlocks + ' extra block(s)' : '') + '.</p>' + state +
+      '<p class="small muted" style="margin-top:8px">Your audit fee includes SAFE AI assistance up to ' + S.inr(b.includedInr) + ' for this audit. If your audit needs more, for example for extensive document review or additional policy drafting, SAFE Legal Solutions will seek your approval before any additional charge is made. Each extra block is ' + S.inr(b.blockInr) + '. SAFE AI supports the audit; all findings and opinions are reviewed and issued by SAFE Legal Solutions.</p></div>';
+  }
   function wireCommon() {
+    $$('[data-act="ai-request"]').forEach((btn) => btn.onclick = async () => {
+      const b = (st.view.audit && st.view.audit.aiBudget) || {};
+      if (!(await S.confirmBox('Request more SAFE AI', '<p>SAFE Legal will be asked to add more SAFE AI usage to this audit. Each extra block is <b>' + S.inr(b.blockInr || 2500) + '</b>, billed in addition to your audit fee.</p><p>Nothing is charged until SAFE Legal confirms with you.</p>', 'Send request'))) return;
+      await S.busy(btn, async () => { st.view = await api('portalAiRequest', {}); S.toast('Request sent to SAFE Legal.'); render(); });
+    });
     $$('[data-go]').forEach((b) => b.onclick = () => go(b.dataset.go));
     $$('[data-dl]').forEach((b) => b.onclick = () => S.busy(b, async () => { const f = await fetchFile(b.dataset.dl); S.download(new Blob([S.b64ToBytes(f.data)], { type: f.mime }), b.dataset.name || f.name); }));
   }

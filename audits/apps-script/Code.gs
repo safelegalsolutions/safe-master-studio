@@ -38,6 +38,8 @@ var DEFAULT_SETTINGS = {
   prices: { 'claude-sonnet-5-5': { in: 2, out: 10 }, 'claude-opus-5-5': { in: 4, out: 20 } },
   budgets: { small: 3000, mid: 6000, large: 15000 },
   budgetAlertPct: 80,
+  aiBlockInr: 2500,                      // price of one extra SAFE AI block, billed to the client with approval
+  aiShowInr: false,                      // show rupee amounts (not just %) to clients in the portal
   requireIndependence: true,
   reportIssuers: 'admin',                 // who may issue signed interim/final reports: 'admin' or 'advocate'
   signatoryName: 'Adv. Sandeep Kumar N',
@@ -276,6 +278,36 @@ function staff_(req) {
       return a;
     }
     case 'getAudit': return readAudit_(req.auditId);
+    case 'aiExtend': {
+      if (!isAdmin) throw new Error('Only an admin can approve extra SAFE AI usage, because it is billed to the client.');
+      a = readAudit_(req.auditId); c = mustClient_(db, a.clientId);
+      var sx = settings_(db); var block = Number(sx.aiBlockInr || 2500);
+      a.aiExtra = a.aiExtra || { inr: 0, blocks: 0, requests: [] };
+      var rq = req.requestId ? (a.aiExtra.requests || []).filter(function (x) { return x.id === req.requestId; })[0] : null;
+      if (req.requestId && (!rq || rq.status !== 'pending')) throw new Error('This request has already been dealt with.');
+      if (req.approve === false) {
+        if (!rq) throw new Error('Choose a pending request to decline.');
+        rq.status = 'declined'; rq.decidedBy = me.email; rq.decidedAt = now_();
+        log_(a, me.email, 'Declined the request for extra SAFE AI usage');
+      } else {
+        var n = Math.max(1, Math.min(10, Number(req.blocks || 1)));
+        a.aiExtra.blocks += n; a.aiExtra.inr += n * block;
+        if (rq) { rq.status = 'approved'; rq.decidedBy = me.email; rq.decidedAt = now_(); rq.blocks = n; }
+        a.aiExtra.requests = (a.aiExtra.requests || []).concat(rq ? [] : [{ id: 'x' + randomToken_().slice(0, 8), at: now_(), by: me.email, status: 'approved', blocks: n, blockInr: block, decidedBy: me.email, decidedAt: now_(), bySafe: true }]);
+        if (a.usage) a.usage.alerted = '';
+        log_(a, me.email, 'Approved ' + n + ' extra SAFE AI block(s) of ₹' + block + ' (billable to the client: ₹' + (n * block) + ')');
+      }
+      writeAudit_(a);
+      var toC = contactEmails_(c);
+      if (toC) {
+        var sm = settings_(db);
+        sendMail_(db, { to: toC, cc: sm.safeCc, subject: (req.approve === false ? 'Extra SAFE AI usage not approved — ' : 'Extra SAFE AI usage approved — ') + c.name,
+          html: emailShell_(req.approve === false ? 'Extra SAFE AI usage' : 'Extra SAFE AI usage approved', req.approve === false
+            ? '<p>Dear ' + esc_(c.name) + ' team,</p><p>Your request for additional SAFE AI usage on audit ' + esc_(a.ref) + ' has not been approved at this stage. Your SAFE Legal contact will be in touch on the next steps. You can continue the audit; SAFE\'s team will help with any remaining questions.</p>'
+            : '<p>Dear ' + esc_(c.name) + ' team,</p><p>Additional SAFE AI usage has been added to audit ' + esc_(a.ref) + ' (' + a.aiExtra.blocks + ' extra block(s) in total). As agreed, this is billed in addition to the audit fee at ₹' + block + ' per block. You can continue using SAFE AI in the portal.</p>') });
+      }
+      return a;
+    }
     case 'saveAudit': {
       a = readAudit_(req.auditId);
       applyPatch_(a, req.patch || {}, me.email, true);
@@ -318,10 +350,11 @@ function staff_(req) {
       if (!isAdmin) throw new Error('Only an admin can change settings.');
       var s = req.settings || {};
       ['safeTo', 'safeCc', 'fromAddress', 'senderName', 'studioUrl', 'engineStandard', 'engineAudit', 'reportIssuers', 'signatoryName', 'signatoryTitle', 'signatoryEnrolment'].forEach(function (k) { if (s[k] !== undefined) db.settings[k] = clip_(s[k], 300); });
-      ['reminderDaysBefore', 'reminderIntervalDays', 'pulseGraceDays', 'usdInr', 'budgetAlertPct'].forEach(function (k) { if (s[k] !== undefined && s[k] !== '') db.settings[k] = Number(s[k]); });
+      ['reminderDaysBefore', 'reminderIntervalDays', 'pulseGraceDays', 'usdInr', 'budgetAlertPct', 'aiBlockInr'].forEach(function (k) { if (s[k] !== undefined && s[k] !== '') db.settings[k] = Number(s[k]); });
       if (s.prices) db.settings.prices = s.prices;
       if (s.budgets) db.settings.budgets = s.budgets;
       if (s.requireIndependence !== undefined) db.settings.requireIndependence = !!s.requireIndependence;
+      if (s.aiShowInr !== undefined) db.settings.aiShowInr = !!s.aiShowInr;
       if (s.aiKey) PropertiesService.getScriptProperties().setProperty('AI_KEY', String(s.aiKey).trim());
       writeDb_(db);
       return bootstrap_(db, me).settings;
@@ -382,7 +415,7 @@ function bootstrap_(db, me) {
     settings: {
       safeTo: s.safeTo, safeCc: s.safeCc, fromAddress: s.fromAddress, senderName: s.senderName, studioUrl: s.studioUrl,
       reminderDaysBefore: s.reminderDaysBefore, reminderIntervalDays: s.reminderIntervalDays, pulseGraceDays: s.pulseGraceDays,
-      usdInr: s.usdInr, prices: s.prices, budgets: s.budgets, budgetAlertPct: s.budgetAlertPct, requireIndependence: s.requireIndependence,
+      usdInr: s.usdInr, prices: s.prices, budgets: s.budgets, budgetAlertPct: s.budgetAlertPct, aiBlockInr: s.aiBlockInr, aiShowInr: !!s.aiShowInr, requireIndependence: s.requireIndependence,
       engineStandard: s.engineStandard, engineAudit: s.engineAudit, reportIssuers: s.reportIssuers,
       signatoryName: s.signatoryName, signatoryTitle: s.signatoryTitle, signatoryEnrolment: s.signatoryEnrolment, hasSignature: !!PropertiesService.getScriptProperties().getProperty('SIGNATURE_FILE_ID'),
       aiConnected: !!key, aiKeyHint: key ? '••••' + key.slice(-4) : ''
@@ -400,7 +433,7 @@ function summariseAudit_(a) {
   return { id: a.id, ref: a.ref, clientId: a.clientId, framework: a.framework || 'dpdpa', stage: a.stage, type: a.type, createdAt: a.createdAt, updatedAt: a.updatedAt,
     env: a.env, responses: a.responses, evidence: (a.evidence || []).map(function (e) { return { id: e.id, controlIds: e.controlIds, review: e.review ? { verdict: e.review.verdict } : null, deleted: e.deleted }; }),
     findings: (a.findings || []).map(function (f) { return { id: f.id, controlId: f.controlId, status: f.status, grade: f.grade, state: f.state, needsReview: f.needsReview, reviewedBy: f.reviewedBy, dueDate: f.dueDate }; }),
-    reports: (a.reports || []).map(function (r) { return { kind: r.kind, at: r.at }; }), usage: a.usage, signoff: a.signoff || null };
+    reports: (a.reports || []).map(function (r) { return { kind: r.kind, at: r.at }; }), usage: a.usage, aiExtra: a.aiExtra || null, signoff: a.signoff || null };
 }
 
 // ================================================================ audit patching
@@ -564,6 +597,17 @@ function portal_(req) {
       return portalView_(db, c, a);
     }
     case 'portalAi': return aiTask_(db, req, { by: who, clientId: c.id, portal: true });
+    case 'portalAiRequest': {
+      if (!a) throw new Error('No audit is open yet.');
+      a.aiExtra = a.aiExtra || { inr: 0, blocks: 0, requests: [] };
+      if ((a.aiExtra.requests || []).some(function (x) { return x.status === 'pending'; })) return portalView_(db, c, a);
+      var sb = settings_(db);
+      a.aiExtra.requests = (a.aiExtra.requests || []).concat([{ id: 'x' + randomToken_().slice(0, 8), at: now_(), by: who, status: 'pending', blockInr: Number(sb.aiBlockInr || 2500), note: clip_(req.note, 1000) }]);
+      log_(a, who, 'Client requested extra SAFE AI usage');
+      writeAudit_(a);
+      notifySafe_(db, c, a, 'Client requests extra SAFE AI usage', '<p>' + esc_(c.name) + ' has asked for more SAFE AI usage on audit ' + esc_(a.ref) + '. Usage so far: ₹' + Math.round((a.usage && a.usage.inr) || 0) + ' of an allowance of ₹' + budgetFor_(db, c, a) + '.</p>' + (req.note ? '<p>Note from the client: ' + esc_(clip_(req.note, 1000)) + '</p>' : '') + '<p>Approve or decline it in the Studio (client overview → SAFE AI allowance). An approved block is billed to the client at ₹' + Number(sb.aiBlockInr || 2500) + '.</p>');
+      return portalView_(db, c, a);
+    }
     case 'portalPulse': {
       var cert = db.certs.filter(function (x) { return x.clientId === c.id && x.status !== 'revoked' && (!req.certNo || x.no === req.certNo); }).sort(function (x, y) { return y.issued > x.issued ? 1 : -1; })[0];
       if (!cert) throw new Error('No certificate is in force.');
@@ -603,7 +647,7 @@ function portalView_(db, c, a) {
       findings: (a.reports || []).some(function (r) { return r.kind === 'interim'; }) ? (a.findings || []).map(function (f) { var o = {}; for (var k in f) if (['reviewNote', 'aiRaw'].indexOf(k) < 0) o[k] = f[k]; return o; }) : [],
       docs: (a.docs || []).filter(function (d) { return d.status === 'approved' || d.status === 'issued' || d.requestedByClient; }),
       reports: (a.reports || []).map(function (r) { return { id: r.id, kind: r.kind, at: r.at, pdfId: r.pdfId, htmlId: r.htmlId, opinion: r.opinion, score: r.score }; }),
-      aiBudget: { usedInr: Math.round((a.usage && a.usage.inr) || 0), budgetInr: budget, blocked: budget > 0 && (a.usage && a.usage.inr || 0) >= budget }
+      aiBudget: aiBudgetView_(db, c, a)
     };
   }
   return view;
@@ -627,7 +671,7 @@ function aiTask_(db, req, ctx) {
   var portalAllowed = { followups: 1, reviewEvidence: 1, ask: 1, verifyRemediation: 1, roleMemo: 1, draftDoc: 1 };
   if (ctx.portal && !portalAllowed[req.task]) throw new Error('Not available in the portal.');
   var budget = budgetFor_(db, c, a);
-  if (ctx.portal && budget > 0 && (a.usage && a.usage.inr || 0) >= budget) throw new Error('SAFE AI usage for this audit has reached its limit. SAFE Legal has been informed and will extend it.');
+  if (ctx.portal && budget > 0 && (a.usage && a.usage.inr || 0) >= budget) throw new Error('This audit has used its included SAFE AI allowance. Use "Request more SAFE AI" on your portal home page, and SAFE Legal will confirm with you before any additional charge.');
   if (ctx.portal) rate_('ai_' + c.id, 120, 3600);
   var envBrief = envBrief_(a.env, c);
   var out, r, prompt;
@@ -844,18 +888,31 @@ function meter_(db, c, a, task, r) {
   var pct = budget ? (a.usage.inr / budget) * 100 : 0;
   if (budget && pct >= Number(s.budgetAlertPct || 80) && !a.usage.alerted) {
     a.usage.alerted = now_();
-    notifySafe_(db, c, a, 'SAFE AI budget at ' + Math.round(pct) + '%', '<p>SAFE AI usage on audit ' + esc_(a.ref) + ' for ' + esc_(c.name) + ' has reached <b>₹' + Math.round(a.usage.inr) + '</b> of its ₹' + budget + ' budget. Portal AI stops at 100% until you raise the budget on the client record.</p>');
+    notifySafe_(db, c, a, 'SAFE AI budget at ' + Math.round(pct) + '%', '<p>SAFE AI usage on audit ' + esc_(a.ref) + ' for ' + esc_(c.name) + ' has reached <b>₹' + Math.round(a.usage.inr) + '</b> of its ₹' + budget + ' budget. At 100% the client is asked to request more; you approve or decline each extra block (₹' + Number(s.aiBlockInr || 2500) + ', billable) in the Studio.</p>');
   }
 }
 function budgetFor_(db, c, a) {
-  if (c.budgetInr) return Number(c.budgetInr);
   var s = settings_(db);
-  return Number((s.budgets || {})[c.tier || tierOf_(a && a.env)] || 0);
+  var base = c.budgetInr ? Number(c.budgetInr) : Number((s.budgets || {})[c.tier || tierOf_(a && a.env)] || 0);
+  return base ? base + Number((a && a.aiExtra && a.aiExtra.inr) || 0) : 0;
+}
+/** What the client portal shows about the SAFE AI allowance. Rupee amounts used are shown only if the admin allows it. */
+function aiBudgetView_(db, c, a) {
+  var s = settings_(db); var budget = budgetFor_(db, c, a); var used = (a.usage && a.usage.inr) || 0;
+  var pend = ((a.aiExtra && a.aiExtra.requests) || []).filter(function (x) { return x.status === 'pending'; })[0];
+  var last = ((a.aiExtra && a.aiExtra.requests) || []).filter(function (x) { return x.status !== 'pending' && !x.bySafe; }).slice(-1)[0];
+  return { budgetInr: budget, includedInr: budget - Number((a.aiExtra && a.aiExtra.inr) || 0), extraBlocks: (a.aiExtra && a.aiExtra.blocks) || 0,
+    pct: budget ? Math.min(100, Math.round((used / budget) * 100)) : 0, blocked: budget > 0 && used >= budget, alertPct: Number(s.budgetAlertPct || 80),
+    showInr: !!s.aiShowInr, usedInr: s.aiShowInr ? Math.round(used) : null, blockInr: Number(s.aiBlockInr || 2500),
+    pending: pend ? { at: pend.at } : null, lastDecision: last ? { status: last.status, at: last.decidedAt } : null };
 }
 function tierOf_(env) {
   env = env || {};
-  if (['501–2,000', 'Over 2,000'].indexOf(env.employees) >= 0 || ['10 lakh – 1 crore', '1 crore – 2 crore', 'Over 2 crore'].indexOf(env.principals) >= 0 || env.sdfNotified === 'yes') return 'large';
-  if (env.employees === '1–50' && ['Under 10,000', '10,000 – 1 lakh'].indexOf(env.principals) >= 0) return 'small';
+  var HC = { '1–9': 1, '10–19': 10, '20–49': 20, '50–99': 50, '100–299': 100, '300–999': 300, '1,000–4,999': 1000, '5,000 or more': 5000, '1–50': 1, '51–200': 51, '201–500': 201, '501–2,000': 501, 'Over 2,000': 2001 };
+  var hc = HC[env.employees] || 0;
+  var bigP = ['10 lakh – 1 crore', '1 crore – 2 crore', 'Over 2 crore'].indexOf(env.principals) >= 0;
+  if (hc >= 1000 || bigP || env.sdfNotified === 'yes' || ['₹250–1,000 crore', 'Over ₹1,000 crore'].indexOf(env.turnover) >= 0) return 'large';
+  if (hc > 0 && hc < 50 && !bigP && env.principals !== '1 lakh – 10 lakh') return 'small';
   return 'mid';
 }
 function rate_(key, max, seconds) {
