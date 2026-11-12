@@ -245,6 +245,14 @@
         ['name', 'legalName', 'industry', 'website', 'address', 'cin', 'tier', 'notes', 'contacts', 'budgetInr'].forEach((k) => { if (i[k] !== undefined) c[k] = i[k]; });
         save(); return c;
       }
+      case 'deleteClient': {
+        if (me.role !== 'admin') throw new Error('Only an admin can delete a client.');
+        c = client(db, req.clientId);
+        if (String(req.confirmName || '').trim() !== String(c.name).trim()) throw new Error('Type the client name exactly to confirm.');
+        if (db.certs.some((x) => x.clientId === c.id)) throw new Error('This client has a certificate, so it cannot be deleted: certificates must stay verifiable. Revoke the certificate instead if it should no longer be relied on.');
+        Object.keys(db.audits).forEach((id) => { if (db.audits[id].clientId === c.id) delete db.audits[id]; });
+        db.clients = db.clients.filter((x) => x.id !== c.id); save(); return { ok: true };
+      }
       case 'setPortal': {
         c = client(db, req.clientId); c.portal = c.portal || { id: 'p' + tok().slice(0, 12) };
         c.portal.enabled = !!req.enabled; if (req.pin) c.portal.pin = String(req.pin); if (req.resetLink) c.portal.id = 'p' + tok().slice(0, 12);

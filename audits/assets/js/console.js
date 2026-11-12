@@ -649,7 +649,8 @@
     S.modal(c.id ? 'Client details' : 'New client', '<div class="grid2"><div><label class="req">Short name</label><input id="cN" value="' + esc(c.name || '') + '"></div><div><label>Legal name</label><input id="cL" value="' + esc(c.legalName || '') + '"></div><div><label>Industry</label><select id="cI"><option value="">Choose…</option>' + S.INDUSTRIES.map((i) => '<option' + (c.industry === i ? ' selected' : '') + '>' + esc(i) + '</option>').join('') + '</select></div><div><label>Website</label><input id="cW" value="' + esc(c.website || '') + '"></div>' +
       '<div><label>Size tier (sets the SAFE AI budget)</label><select id="cT"><option value="">Automatic from the assessment</option>' + Object.entries(S.TIERS).map(([k, t]) => '<option value="' + k + '"' + (c.tier === k ? ' selected' : '') + '>' + t.label + ' (suggested fee line ' + S.inr(t.feeInr) + ')</option>').join('') + '</select></div><div><label>Client-specific SAFE AI budget ₹ (optional)</label><input id="cB" value="' + esc(c.budgetInr || '') + '"></div></div>' +
       (c.id ? '' : '<h3 style="margin-top:14px">Audits to open</h3><div class="checks">' + S.FW_ORDER.map((k) => '<label><input type="checkbox" data-newfw="' + k + '"' + (k === 'dpdpa' ? ' checked' : '') + '> ' + esc(S.fw(k).name) + '</label>').join('') + '</div>') + '<h3 style="margin-top:14px">Client contacts (receive portal emails, reports and reminders)</h3>' + contacts.map((x, i) => '<div class="grid3" data-contact="' + i + '"><input placeholder="Name" value="' + esc(x.name || '') + '"><input placeholder="Email" value="' + esc(x.email || '') + '"><input placeholder="Role" value="' + esc(x.role || '') + '"></div>').join('') +
-      '<div class="row" style="justify-content:flex-end;margin-top:12px"><button data-close>Cancel</button><button class="primary" id="cSave">' + (c.id ? 'Save' : 'Create client and open audits') + '</button></div>', (m) => {
+      '<div class="row" style="justify-content:flex-end;margin-top:12px">' + (c.id && st.me && st.me.role === 'admin' ? '<button id="cDel" style="margin-right:auto;color:var(--maroon)">Delete client</button>' : '') + '<button data-close>Cancel</button><button class="primary" id="cSave">' + (c.id ? 'Save' : 'Create client and open audits') + '</button></div>', (m) => {
+      if ($('#cDel', m)) $('#cDel', m).onclick = () => { m.remove(); deleteClient(c); };
       $('#cSave', m).onclick = async () => {
         const name = $('#cN', m).value.trim(); if (!name) { S.toast('Enter a name.'); return; }
         const payload = { id: c.id, name, legalName: $('#cL', m).value.trim(), industry: $('#cI', m).value, website: $('#cW', m).value.trim(), tier: $('#cT', m).value, budgetInr: Number($('#cB', m).value) || 0,
@@ -664,6 +665,14 @@
         } catch (e) { S.fail(e); }
       };
     }, true);
+  }
+
+  function deleteClient(c) {
+    S.modal('Delete ' + c.name, '<p>This permanently removes <b>' + esc(c.name) + '</b>, all its audits, answers, evidence, drafted documents and reports from the studio. The client\'s portal link stops working.</p><p class="small muted">Files are moved to the Google Drive trash of the studio account, where they can be recovered for 30 days. Clients with an issued certificate cannot be deleted.</p><label>Type the client name to confirm: <b>' + esc(c.name) + '</b></label><input id="dName" autocomplete="off"><div class="row" style="justify-content:flex-end;margin-top:12px"><button data-close>Cancel</button><button class="primary" id="dGo" disabled>Delete client</button></div>', (m) => {
+      const inp = $('#dName', m), go = $('#dGo', m);
+      inp.oninput = () => { go.disabled = inp.value.trim() !== String(c.name).trim(); };
+      go.onclick = () => S.busy(go, async () => { await api('deleteClient', { clientId: c.id, confirmName: inp.value.trim() }); m.remove(); st.boot = await api('bootstrap'); st.clientId = null; st.view = 'dashboard'; render(); S.toast(c.name + ' deleted.'); });
+    });
   }
 
   // ============================================================ start

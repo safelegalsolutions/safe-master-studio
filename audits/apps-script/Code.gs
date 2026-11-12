@@ -210,6 +210,20 @@ function staff_(req) {
       writeDb_(db);
       return publicClient_(c);
     }
+    case 'deleteClient': {
+      if (!isAdmin) throw new Error('Only an admin can delete a client.');
+      c = mustClient_(db, req.clientId);
+      if (String(req.confirmName || '').trim() !== String(c.name).trim()) throw new Error('Type the client name exactly to confirm.');
+      if (db.certs.some(function (x) { return x.clientId === c.id; })) throw new Error('This client has a certificate, so it cannot be deleted: certificates must stay verifiable. Revoke the certificate instead if it should no longer be relied on.');
+      var gone = db.auditIndex.filter(function (x) { return x.clientId === c.id; }).map(function (x) { return x.id; });
+      gone.forEach(function (id) { var it = auditsFolder_().getFilesByName('audit-' + id + '.json'); while (it.hasNext()) it.next().setTrashed(true); });
+      if (c.folderId) { try { DriveApp.getFolderById(c.folderId).setTrashed(true); } catch (e) { /* already gone */ } }
+      db.clients = db.clients.filter(function (x) { return x.id !== c.id; });
+      db.auditIndex = db.auditIndex.filter(function (x) { return x.clientId !== c.id; });
+      db.deletions = (db.deletions || []).concat([{ at: now_(), by: me.email, clientId: c.id, name: c.name, audits: gone.length }]).slice(-200);
+      writeDb_(db);
+      return { ok: true, audits: gone.length };
+    }
     case 'setPortal': {
       c = mustClient_(db, req.clientId);
       c.portal = c.portal || { id: randomToken_().slice(0, 20) };
